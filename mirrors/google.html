@@ -2,89 +2,115 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { 
-            margin: 0; padding: 0; background: #fff; 
-            font-family: arial, sans-serif; display: flex; 
-            flex-direction: column; align-items: center; 
-        }
-        .header { width: 100%; display: flex; justify-content: flex-end; padding: 15px; gap: 15px; font-size: 13px; }
-        .logo-section { margin-top: 100px; text-align: center; }
-        .logo { font-size: 80px; font-weight: bold; letter-spacing: -5px; }
-        .g-blue { color: #4285f4; } .g-red { color: #ea4335; } .g-yellow { color: #fbbc05; } .g-green { color: #34a853; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #fff; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         
-        .search-box {
-            margin-top: 30px; width: 90%; max-width: 580px;
-            display: flex; border: 1px solid #dfe1e5; padding: 10px 20px;
-            border-radius: 24px; transition: 0.2s;
+        /* Home State */
+        #google-home { display: flex; flex-direction: column; align-items: center; padding-top: 80px; transition: 0.3s; }
+        .logo { width: 160px; margin-bottom: 30px; }
+        .search-container {
+            width: 90%; max-width: 500px; background: #f1f3f4; border-radius: 28px;
+            padding: 12px 20px; display: flex; align-items: center; margin-bottom: 20px;
         }
-        .search-box:hover { box-shadow: 0 1px 6px rgba(32,33,36,0.28); border-color: transparent; }
-        input { flex: 1; border: none; outline: none; font-size: 16px; }
+        input { flex: 1; border: none; background: transparent; font-size: 16px; outline: none; }
         
-        .btns { margin-top: 30px; display: flex; gap: 12px; }
-        button { 
-            background: #f8f9fa; border: 1px solid #f8f9fa; color: #3c4043;
-            padding: 10px 15px; border-radius: 4px; font-size: 14px; cursor: pointer;
+        /* Botões da sua imagem */
+        .quick-actions { display: flex; gap: 10px; margin-bottom: 30px; }
+        .btn-ia { 
+            background: #f1f3f4; border: none; border-radius: 20px; padding: 10px 20px; 
+            cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500;
         }
-        button:hover { border: 1px solid #dadce0; color: #202124; }
 
-        /* Estilo dos Resultados Simulados */
-        #results { width: 90%; max-width: 650px; margin-top: 40px; display: none; }
-        .res-item { margin-bottom: 25px; }
-        .res-item a { color: #1a0dab; font-size: 20px; text-decoration: none; }
-        .res-item p { color: #4d5156; font-size: 14px; margin: 5px 0; }
+        /* O "Site Falso": Gemini Ndj Edition */
+        #gemini-ndj {
+            display: none; position: fixed; inset: 0; background: #fff;
+            flex-direction: column; padding: 20px; z-index: 100;
+        }
+        .ia-header { display: flex; align-items: center; gap: 10px; color: #1a73e8; font-weight: bold; margin-bottom: 20px; }
+        .chat-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 12px; border-radius: 15px; max-width: 80%; font-size: 14px; }
+        .user-msg { align-self: flex-end; background: #e8f0fe; color: #1967d2; }
+        .bot-msg { align-self: flex-start; background: #f1f3f4; color: #3c4043; border-left: 4px solid #3b82f6; }
     </style>
 </head>
 <body>
 
-    <div class="logo-section" id="home">
-        <div class="logo">
-            <span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span>
+    <div id="google-home">
+        <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" class="logo">
+        <div class="search-container">
+            <input type="text" id="main-input" placeholder="Pesquise ou digite URL" onkeydown="if(event.key==='Enter') handleSearch()">
         </div>
-        <div class="search-box">
-            <input type="text" id="g-input" onkeydown="if(event.key==='Enter') search()">
-        </div>
-        <div class="btns">
-            <button onclick="search()">Pesquisa Google</button>
-            <button>Sinto-me com sorte</button>
+        <div class="quick-actions">
+            <button class="btn-ia" onclick="openGemini()">✨ Modo IA</button>
+            <button class="btn-ia" style="padding:10px 15px;">🎵</button>
+            <button class="btn-ia" style="padding:10px 15px;">🍌</button>
         </div>
     </div>
 
-    <div id="results"></div>
+    <div id="gemini-ndj">
+        <div class="ia-header">
+            <span onclick="closeGemini()" style="cursor:pointer">←</span> 
+            <span>Gemini 4 <small style="font-weight:300">NDJ-v1</small></span>
+        </div>
+        <div class="chat-area" id="chat-box">
+            <div class="msg bot-msg">Olá! Sou a inteligência do Ghost OS. Como posso ajudar no seu hardware hoje?</div>
+        </div>
+        <div class="search-container" style="margin: 20px auto; width: 100%;">
+            <input type="text" id="ia-input" placeholder="Pergunte ao Gemini..." onkeydown="if(event.key==='Enter') askIA()">
+        </div>
+    </div>
 
     <script>
-        async function search() {
-            const q = document.getElementById('g-input').value;
-            if(!q) return;
+        // Lógica de Navegação Híbrida
+        function handleSearch() {
+            const val = document.getElementById('main-input').value.trim();
+            if(!val) return;
 
-            document.getElementById('home').style.marginTop = "20px";
-            document.getElementById('results').style.display = "block";
-            document.getElementById('results').innerHTML = "Buscando...";
-
-            try {
-                // Aqui usamos o AllOrigins apenas para os dados, não para o HTML todo, 
-                // o que diminui a chance de bloqueio.
-                const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.duckduckgo.com/?q='+q+'&format=json')}`);
-                const data = await resp.json();
-                const json = JSON.parse(data.contents);
-
-                let html = `<p style="color:#70757a">Aproximadamente ${json.RelatedTopics.length} resultados encontrados</p>`;
-                
-                json.RelatedTopics.forEach(t => {
-                    if(t.Text) {
-                        html += `
-                        <div class="res-item">
-                            <a href="${t.FirstURL}" target="_blank">${t.Text.split(' - ')[0]}</a>
-                            <p>${t.FirstURL}</p>
-                            <p>${t.Text}</p>
-                        </div>`;
-                    }
-                });
-
-                document.getElementById('results').innerHTML = html || "Nenhum resultado encontrado.";
-            } catch (e) {
-                document.getElementById('results').innerHTML = "Erro na conexão com o Mirror.";
+            // Se for URL (tem ponto e não tem espaço)
+            if(val.includes('.') && !val.includes(' ')) {
+                // Envia comando para o motor pai (Ndj-Cloud)
+                window.parent.postMessage({ type: 'FETCH_URL', url: val }, "*");
+            } else {
+                // Se for busca, abre a IA ou um buscador simulado
+                openGemini(val);
             }
+        }
+
+        function openGemini(initialQuery = "") {
+            document.getElementById('gemini-ndj').style.display = 'flex';
+            if(initialQuery) {
+                document.getElementById('ia-input').value = initialQuery;
+                askIA();
+            }
+        }
+
+        function closeGemini() {
+            document.getElementById('gemini-ndj').style.display = 'none';
+        }
+
+        function askIA() {
+            const input = document.getElementById('ia-input');
+            const chat = document.getElementById('chat-box');
+            if(!input.value) return;
+
+            // Add user message
+            chat.innerHTML += `<div class="msg user-msg">${input.value}</div>`;
+            
+            const prompt = input.value.toLowerCase();
+            input.value = "";
+
+            // Resposta de "Baixo Orçamento" do Gemini Ndj
+            setTimeout(() => {
+                let response = "Interessante... Analisando os logs do Ghost OS, acredito que posso otimizar isso via Ndj-lib.";
+                
+                if(prompt.includes("quem")) response = "Eu sou o Gemini 4 (Ndj Edition), a alma pensante do Ghost OS.";
+                if(prompt.includes("ram")) response = "Sua V-RAM está estável, mas um overclock via Terminal pode ajudar.";
+                
+                chat.innerHTML += `<div class="msg bot-msg">${response}</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }, 800);
         }
     </script>
 </body>
