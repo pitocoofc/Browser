@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { 
+            margin: 0; padding: 0; background: #fff; 
+            font-family: arial, sans-serif; display: flex; 
+            flex-direction: column; align-items: center; 
+        }
+        .header { width: 100%; display: flex; justify-content: flex-end; padding: 15px; gap: 15px; font-size: 13px; }
+        .logo-section { margin-top: 100px; text-align: center; }
+        .logo { font-size: 80px; font-weight: bold; letter-spacing: -5px; }
+        .g-blue { color: #4285f4; } .g-red { color: #ea4335; } .g-yellow { color: #fbbc05; } .g-green { color: #34a853; }
+        
+        .search-box {
+            margin-top: 30px; width: 90%; max-width: 580px;
+            display: flex; border: 1px solid #dfe1e5; padding: 10px 20px;
+            border-radius: 24px; transition: 0.2s;
+        }
+        .search-box:hover { box-shadow: 0 1px 6px rgba(32,33,36,0.28); border-color: transparent; }
+        input { flex: 1; border: none; outline: none; font-size: 16px; }
+        
+        .btns { margin-top: 30px; display: flex; gap: 12px; }
+        button { 
+            background: #f8f9fa; border: 1px solid #f8f9fa; color: #3c4043;
+            padding: 10px 15px; border-radius: 4px; font-size: 14px; cursor: pointer;
+        }
+        button:hover { border: 1px solid #dadce0; color: #202124; }
+
+        /* Estilo dos Resultados Simulados */
+        #results { width: 90%; max-width: 650px; margin-top: 40px; display: none; }
+        .res-item { margin-bottom: 25px; }
+        .res-item a { color: #1a0dab; font-size: 20px; text-decoration: none; }
+        .res-item p { color: #4d5156; font-size: 14px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="logo-section" id="home">
+        <div class="logo">
+            <span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span>
+        </div>
+        <div class="search-box">
+            <input type="text" id="g-input" onkeydown="if(event.key==='Enter') search()">
+        </div>
+        <div class="btns">
+            <button onclick="search()">Pesquisa Google</button>
+            <button>Sinto-me com sorte</button>
+        </div>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        async function search() {
+            const q = document.getElementById('g-input').value;
+            if(!q) return;
+
+            document.getElementById('home').style.marginTop = "20px";
+            document.getElementById('results').style.display = "block";
+            document.getElementById('results').innerHTML = "Buscando...";
+
+            try {
+                // Aqui usamos o AllOrigins apenas para os dados, não para o HTML todo, 
+                // o que diminui a chance de bloqueio.
+                const resp = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://api.duckduckgo.com/?q='+q+'&format=json')}`);
+                const data = await resp.json();
+                const json = JSON.parse(data.contents);
+
+                let html = `<p style="color:#70757a">Aproximadamente ${json.RelatedTopics.length} resultados encontrados</p>`;
+                
+                json.RelatedTopics.forEach(t => {
+                    if(t.Text) {
+                        html += `
+                        <div class="res-item">
+                            <a href="${t.FirstURL}" target="_blank">${t.Text.split(' - ')[0]}</a>
+                            <p>${t.FirstURL}</p>
+                            <p>${t.Text}</p>
+                        </div>`;
+                    }
+                });
+
+                document.getElementById('results').innerHTML = html || "Nenhum resultado encontrado.";
+            } catch (e) {
+                document.getElementById('results').innerHTML = "Erro na conexão com o Mirror.";
+            }
+        }
+    </script>
+</body>
+</html>
